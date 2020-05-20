@@ -21,13 +21,20 @@ class almouggar_pos_cache (models.Model):
     @api.one
     def update_cache(self):
         # We decode the existing cache
-        decoded_cache = json.loads(base64.decodestring(self.cache).decode('utf-8'))
-        decoded_cache = self._remove_unavailable_products_from_decoded_cache(decoded_cache)
-        decoded_cache = self._add_or_update_products_in_decoded_cache(decoded_cache)
-        datas = {
-            'cache': base64.encodestring(json.dumps(decoded_cache).encode('utf-8')),
-        }
-        self.write(datas)
+        if self.cache:
+            try:
+                decoded_cache = json.loads(base64.decodestring(self.cache).decode('utf-8'))
+                decoded_cache = self._remove_unavailable_products_from_decoded_cache(decoded_cache)
+                decoded_cache = self._add_or_update_products_in_decoded_cache(decoded_cache)
+                datas = {
+                    'cache': base64.encodestring(json.dumps(decoded_cache).encode('utf-8')),
+                }
+                self.write(datas)
+                _logger.info("Cache updated")
+            except Exception as e:
+                _logger.error("Error on updating cache %s", str(e))
+        else:
+            _logger.error("Erreur on updating cache id %s, it doesn't exist, please verify the filestore", self.id)
 
     def _get_products_products_based_on_products_template(self, domain):
         products_template = self.env['product.template'].sudo(self.compute_user_id.id).search(domain)
@@ -52,6 +59,7 @@ class almouggar_pos_cache (models.Model):
             [['write_date', '>', self.write_date.strftime(self.time_format)]] +
             self.get_product_domain()
         )
+        _logger.info("Cache update : %s products to update", len(products))
         # prod_ctx.sudo(self.compute_user_id.id)
         prod_ctx = products.with_context(pricelist=self.config_id.pricelist_id.id, display_default_code=False,
                               lang=self.compute_user_id.lang)
