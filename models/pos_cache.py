@@ -22,6 +22,7 @@ class almouggar_pos_cache (models.Model):
     def update_cache(self):
         # We decode the existing cache
         if self.cache:
+            _logger.info("Debut Cache update")
             try:
                 decoded_cache = json.loads(base64.decodestring(self.cache).decode('utf-8'))
                 decoded_cache = self._remove_unavailable_products_from_decoded_cache(decoded_cache)
@@ -30,7 +31,7 @@ class almouggar_pos_cache (models.Model):
                     'cache': base64.encodestring(json.dumps(decoded_cache).encode('utf-8')),
                 }
                 self.write(datas)
-                _logger.info("Cache updated")
+                _logger.info("Fin Cache update")
             except Exception as e:
                 _logger.error("Error on updating cache %s", str(e))
         else:
